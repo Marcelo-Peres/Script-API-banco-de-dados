@@ -21,12 +21,6 @@ class Connection():
   def connect_sql_server(self):
     return self.connector.cursor()
 
-  def select_programacao_navio(self):
-    pd.read_sql_query(
-      f'''
-      SELECT * FROM CAD_PROGRAMACAONAVIO order by PROGRAMACAONAVIO_ID
-      ''', self.connector)
-
 
 # criando conexão com o banco de dados
 # portal_prd = pyodbc.connect(

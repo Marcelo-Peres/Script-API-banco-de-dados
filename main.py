@@ -1,5 +1,5 @@
 from autentication import get_porto_api
-from db_connection import Connection
+from queries import Queries
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -28,12 +28,13 @@ INSERT INTO CAD_PROGRAMACAONAVIO
 VALUES(?, ?, ?, ?)
 '''
 
-connect_with_sara = Connection('user', 'pass', 'db', 5005, '127.0.0.1')
+connect_with_sara = Queries('user', 'pass', 'db', 5005, '127.0.0.1')
 
 prd_cursor_obj = connect_with_sara.connect_sql_server()
 
 # invocando a função sitada acima
 dfe = lineup() 
+
 # conectando ao banco de dados
 dfp = connect_with_sara.select_programacao_navio()
 
@@ -45,8 +46,7 @@ novos = novos.values.tolist() # ajustando dados
 
 if len(novos) > 0: # usando uma condicional para ver se é ou não necessário inserir dados em banco
     novos_a = f'O total de navio(s) inserido(s) é de {len(novos)}, datado em {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}!'
-    prd_cursor_obj.executemany(new_vessels, novos)
-    prd_cursor_obj.commit()
+    prd_cursor_obj.execute_many(new_vessels, novos)
 else:
     novos_b = f'Sem navios para inserir, datado em {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}!'
 
@@ -67,14 +67,10 @@ if len(dft[dft.ATA!='n'].ATA) > 0: # etapa atualização 1
     ata_total = 0
     
     for i in range(len(dft[dft.ATA!='n'].ATA)):
-        prd_cursor_obj.execute(
-            f'''
-            UPDATE CAD_PROGRAMACAONAVIO
-            SET DATA_ATA = \'{str(dft[dft.ATA!='n'].ATA.iloc[i])}\'
-            WHERE PROGRAMACAONAVIO_ID = {dft[dft.ATA!='n'].PROGRAMACAONAVIO_ID.iloc[i]}
-            '''
+        prd_cursor_obj.sql_query(
+          str(dft[dft.ATA!='n'].ATA.iloc[i]),
+          dft[dft.ATA!='n'].PROGRAMACAONAVIO_ID.iloc[i]
         )
-        prd_cursor_obj.commit()
         
         ata_total += 1
         
@@ -88,14 +84,10 @@ if len(dft[dft.ETA!='n'].ETA) > 0: # etapa atualização 2
     eta_total = 0
     
     for i in range(len(dft[dft.ETA!='n'].ETA)):
-        prd_cursor_obj.execute(
-            f'''
-            UPDATE CAD_PROGRAMACAONAVIO
-            SET DATA_ETA = \'{str(dft[dft.ETA!='n'].ETA.iloc[i])}\'
-            WHERE PROGRAMACAONAVIO_ID = {dft[dft.ETA!='n'].PROGRAMACAONAVIO_ID.iloc[i]}
-            '''
+        prd_cursor_obj.sql_query(
+          str(dft[dft.ETA!='n'].ETA.iloc[i]),
+          dft[dft.ETA!='n'].PROGRAMACAONAVIO_ID.iloc[i]
         )
-        prd_cursor_obj.commit()
         
         eta_total += 1
         
@@ -109,14 +101,10 @@ if len(dft[dft.ETS!='n'].ETS) > 0: # etapa atualização 3
     ets_total = 0
     
     for i in range(len(dft[dft.ETS!='n'].ETS)):
-        prd_cursor_obj.execute(
-            f'''
-            UPDATE CAD_PROGRAMACAONAVIO
-            SET DATA_ETS = \'{str(dft[dft.ETS!='n'].ETS.iloc[i])}\'
-            WHERE PROGRAMACAONAVIO_ID = {dft[dft.ETS!='n'].PROGRAMACAONAVIO_ID.iloc[i]}
-            '''
+        prd_cursor_obj.sql_query(
+          str(dft[dft.ETS!='n'].ETS.iloc[i]),
+          dft[dft.ETS!='n'].PROGRAMACAONAVIO_ID.iloc[i]
         )
-        prd_cursor_obj.commit()
         
         ets_total += 1
     
