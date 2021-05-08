@@ -1,22 +1,13 @@
-import pyodbc 
+from autentication import get_porto_api
+from db_connection import Connection
 import pandas as pd
 import numpy as np
-import requests
 from datetime import datetime
 
-#pd.set_option('display.max_columns', None)
-#pd.set_option('display.max_rows', None)
 
 #função de conexão com uma api para retiradas de dados!
 def lineup():
-    
-    url = 'https://informações_da_api.com.br' # site de acesso exemplo
-    bearer = 'informações-de-autenticação'# autenticação por senha 
-
-    headers = {'Authorization' : f'Bearer {bearer}'} # Preparação
-    r = requests.get(url, headers=headers) # Requisição
-    
-    df = pd.read_excel(r.content) # lendo os dados para verificação no banco de dados
+    df = pd.read_excel(get_porto_api()) # lendo os dados para verificação no banco de dados
     df[['Abertura Gate', 'Dealine', 'ETA', 'ATA', 'ETB', 'ATB', 'ETS', 'ATS']] = df[[
         'Abertura Gate', 'Dealine', 'ETA', 'ATA', 'ETB', 'ATB', 'ETS', 'ATS']].apply(pd.to_datetime, dayfirst=True) # Transformando datas
     df.drop(columns=['Status', 'Largura do Navio'], inplace=True) # excluindo colunas irrelevantes.
@@ -25,19 +16,7 @@ def lineup():
                   'ATA', 'ETB', 'ATB', 'ETS', 'ATS'] # renomeando colunas para analise
     
     return df
-# criando conexão com o banco de dados
-portal_prd = pyodbc.connect(
-'DRIVER={SQL Server};'+
-'PORT=1234;'+
-'SERVER=servidor\prd;'+
-'DATABASE=portalcliente;'+
-'UID=meu_usuario;'+
-'PWD=senha_top#1234'
-)
-# ajuste de objetos para uso
-prd_connection_obj: pyodbc.Connection = portal_prd
-prd_cursor_obj: pyodbc.Cursor = prd_connection_obj.cursor()
-# preparação das informações de inserção
+
 new_vessels = f'''
 INSERT INTO CAD_PROGRAMACAONAVIO
 (
@@ -49,13 +28,15 @@ INSERT INTO CAD_PROGRAMACAONAVIO
 VALUES(?, ?, ?, ?)
 '''
 
+connect_with_sara = Connection('user', 'pass', 'db', 5005, '127.0.0.1')
+
+prd_cursor_obj = connect_with_sara.connect_sql_server()
+
 # invocando a função sitada acima
 dfe = lineup() 
 # conectando ao banco de dados
-dfp = pd.read_sql_query(
-f'''
-SELECT * FROM CAD_PROGRAMACAONAVIO order by PROGRAMACAONAVIO_ID
-''', portal_prd)
+dfp = connect_with_sara.select_programacao_navio()
+
 # unindo informações da função que invoca e trata os dados da api com os dados extratídos do banco de dados
 dft = pd.merge(dfe, dfp, how='left', left_on='Viagem', right_on='NAVIO_VIAGEM')
 novos = dft[dft.NAVIO_VIAGEM.isna()][['ETA', 'ETS', 'Navio', 'Viagem']] # ajustando dados
@@ -70,10 +51,7 @@ else:
     novos_b = f'Sem navios para inserir, datado em {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}!'
 
 # lendo novamente a query do banco
-dfp = pd.read_sql_query(
-f'''
-SELECT * FROM CAD_PROGRAMACAONAVIO order by PROGRAMACAONAVIO_ID
-''', portal_prd)
+dfp = connect_with_sara.select_programacao_navio()
 # invocando novamente a função para realizar a atualização
 dfe = lineup()
 dft = pd.merge(dfe, dfp, how='left', left_on='Viagem', right_on='NAVIO_VIAGEM') # unindo tabelas
